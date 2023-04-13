@@ -31,11 +31,11 @@ def restaurant_by_id(id):
     if not rest:
         return make_response({"error": "Restaurant not found"}, 404)
     if request.method == 'GET':
-        return rest.to_dict(only=('id', 'name', 'address', 'pizzas', '-pizzas.restaurantpizza'))
+        return rest.to_dict(only=('id', 'name', 'address'))
     elif request.method == 'DELETE':
         db.session.delete(rest)
         db.session.commit()
-        return make_response('', 201)
+        return make_response('', 204)
 
 @app.route('/pizzas')
 def pizzas():
@@ -53,11 +53,11 @@ def new_restaurant_pizza():
             restaurant_id=req['restaurant_id']
         )
     except ValueError:
-        return make_response({"errors": ["validation errors"]}, 403)
-    
+        return make_response({'error': 'Invalid input'}, 400)
     db.session.add(new_rest_pizza)
     db.session.commit()
-    return Pizza.query.filter(Pizza.id==req['pizza_id']).first().to_dict(only=('id', 'name', 'ingredients'))
+    res = Pizza.query.filter(Pizza.id==req['pizza_id']).first().to_dict(only=('id', 'name', 'ingredients'))
+    return make_response(res, 201)
 
 if __name__ == '__main__':
     app.run(port=5555, debug=True)

@@ -10,6 +10,23 @@ metadata = MetaData(naming_convention={
 
 db = SQLAlchemy(metadata=metadata)
 
+
+
+
+class Restaurant(db.Model, SerializerMixin):
+    __tablename__ = "restaurants"
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String)
+    address = db.Column(db.String)
+
+    restaurantpizzas = db.relationship('RestaurantPizza', backref='restaurant')
+    pizzas = association_proxy('Pizza', 'restaurants')
+
+    def __repr__(self):
+        return f'<Restaurant {self.name}, ID: {self.id}>'
+    
+
 class Pizza(db.Model, SerializerMixin):
     __tablename__ = "pizzas"
 
@@ -19,26 +36,13 @@ class Pizza(db.Model, SerializerMixin):
     created_at = db.Column(db.DateTime, server_default=db.func.now())
     updated_at = db.Column(db.DateTime, onupdate=db.func.now())
 
-    restaurantpizzas = db.relationship('Restaurantpizza', backref='pizza')
-    restaurants = association_proxy('restaurants', 'pizza')
+    restaurantpizzas = db.relationship('RestaurantPizza', backref='pizza')
+    restaurants = association_proxy('Restaurant', 'pizzas')
 
     serialize_rules = ('-created_at', '-updated_at')
 
     def __repr__(self):
         return f'<Pizza {self.name}, ingredients: {self.ingredients}, ID: {self.id}>'
-
-class Restaurant(db.Model, SerializerMixin):
-    __tablename__ = "restaurants"
-
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String)
-    address = db.Column(db.String)
-
-    restaurantpizzas = db.relationship('Restaurantpizza', backref='restaurant')
-    pizzas = association_proxy('pizzas', 'restaurant')
-
-    def __repr__(self):
-        return f'<Restaurant {self.name}, ID: {self.id}>'
     
 class RestaurantPizza(db.Model, SerializerMixin):
     __tablename__ = "restaurantpizzas"
