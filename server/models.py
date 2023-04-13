@@ -1,6 +1,6 @@
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import MetaData
-from sqlalchemy.orm import validates, relationship
+from sqlalchemy.orm import validates
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy_serializer import SerializerMixin
 
@@ -16,11 +16,16 @@ class Pizza(db.Model, SerializerMixin):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String)
     ingredients = db.Column(db.String)
-    created_at = db.Column(db.DateTime, default_server=db.func.now())
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
     updated_at = db.Column(db.DateTime, onupdate=db.func.now())
 
-    restaurantpizzas = relationship('Restaurantpizza', backref='pizzas')
+    restaurantpizzas = db.relationship('Restaurantpizza', backref='pizza')
     restaurants = association_proxy('restaurants', 'pizza')
+
+    serialize_rules = ('-created_at', '-updated_at')
+
+    def __repr__(self):
+        return f'<Pizza {self.name}, ingredients: {self.ingredients}, ID: {self.id}>'
 
 class Restaurant(db.Model, SerializerMixin):
     __tablename__ = "restaurants"
@@ -29,12 +34,30 @@ class Restaurant(db.Model, SerializerMixin):
     name = db.Column(db.String)
     address = db.Column(db.String)
 
-    restaurantpizzas = relationship('Restaurantpizza', backref='restaurants')
+    restaurantpizzas = db.relationship('Restaurantpizza', backref='restaurant')
     pizzas = association_proxy('pizzas', 'restaurant')
 
+    def __repr__(self):
+        return f'<Restaurant {self.name}, ID: {self.id}>'
+    
 class RestaurantPizza(db.Model, SerializerMixin):
     __tablename__ = "restaurantpizzas"
 
     id = db.Column(db.Integer, primary_key=True)
     pizza_id = db.Column(db.Integer, db.ForeignKey('pizzas.id'))
     restaurant_id = db.Column(db.Integer, db.ForeignKey('restaurants.id'))
+    price = db.Column(db.Integer)
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
+    updated_at = db.Column(db.DateTime, onupdate=db.func.now())
+
+    serialize_rules = ('-created_at', '-updated_at', '-restaurant.restaurantpizzas', '-pizza.restaurantpizzas')
+
+    @validates('price')
+    def validate_price(self, key, price):
+        if price < 1 or price > 30:
+            raise ValueError('Price must be between 1 and 30.')
+        else:
+            return price
+
+    def __repr__(self):
+        return f'<RestaurantPizza ID: {self.id}>'
